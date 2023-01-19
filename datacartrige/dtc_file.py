@@ -9,18 +9,30 @@ class Aircraft(Enum):
 class Terrain(Enum):
     CAUCASUS = "Caucasus"
 
-@dataclass(frozen=True)
+@dataclass()
 class DTC_file:
     name: str
     filename: str
     terrain: Terrain
     aircraft: Aircraft
-    wp_list: List(Waypoint) = list()
+    wp_list: List[Waypoint]
     date: str = "01/01/2023"
     
-    def write_to_file(self):
-        pass
-    
+    def write_to_file(self, file_name):
+        file = open(file_name, "w")
+        file.write("-- auto-generated datacartridge \n")
+        file.write(f"terrain = \"{self.terrain.value}\"\n")
+        file.write(f"aircraft = \"{self.aircraft.value}\"\n")
+        file.write(f"date = \"{self.date}\"\n")
+        file.write(f"name = \"{self.name}\"\n")
+
+        file.write("waypoints = {} \n")
+        wpt_number = 1
+        for wpt in self.wp_list:
+            file.write(f"waypoints[{wpt_number}] = {{ name=\"{wpt.name}\", lat=\"{wpt.coords.lat_to_string()}\", lon=\"{wpt.coords.lat_to_string()}\"}}\n")
+            wpt_number += 1
+        file.close()
+
     def add_wp(self):
         pass
     
