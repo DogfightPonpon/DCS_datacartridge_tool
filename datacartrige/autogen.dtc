@@ -1,8 +1,0 @@
--- auto-generated datacartridge 
-terrain = "Caucasus"
-aircraft = "M-2000C"
-date = "01/01/2023"
-name = "autogen"
-waypoints = {} 
-waypoints[1] = { name="waplt_1", lat="N14.15478", lon="N14.15478"}
-waypoints[2] = { name="waplt_2", lat="N64.41", lon="N64.41"}

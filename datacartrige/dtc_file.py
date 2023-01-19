@@ -9,7 +9,7 @@ class Aircraft(Enum):
 class Terrain(Enum):
     CAUCASUS = "Caucasus"
 
-@dataclass()
+@dataclass(frozen=True)
 class DTC_file:
     name: str
     filename: str
@@ -29,7 +29,14 @@ class DTC_file:
         file.write("waypoints = {} \n")
         wpt_number = 1
         for wpt in self.wp_list:
-            file.write(f"waypoints[{wpt_number}] = {{ name=\"{wpt.name}\", lat=\"{wpt.coords.lat_to_string()}\", lon=\"{wpt.coords.lat_to_string()}\"}}\n")
+            cap_pente = ""
+            if wpt.cap_d is not None:
+                cap_pente += f", cp={wpt.cap_d}"
+            if wpt.pente_d is not None:
+                cap_pente += f", cp={wpt.pente_d}"
+
+            file.write(f"waypoints[{wpt_number}] = {{ name=\"{wpt.name}\", lat=\"{wpt.coords.lat_to_string()}\"," 
+                       f" lon=\"{wpt.coords.lat_to_string()}\"{cap_pente}}}\n")
             wpt_number += 1
         file.close()
 
