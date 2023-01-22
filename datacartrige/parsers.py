@@ -9,6 +9,10 @@ class BF_CSV_Parser:
     @property
     def objective_list(self):
         return self._objectives
+
+    @property
+    def objective_names(self):
+        return [f"{obj.name} ({obj.obj_type})" for obj in self.objective_list]
     
     @staticmethod
     def _read_objective_list(filename: str) -> List[Waypoint]:

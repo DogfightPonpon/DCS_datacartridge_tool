@@ -4,12 +4,35 @@ import tkintermapview
 import parsers
 from PIL import ImageTk
 
+class DragDropListbox(tkinter.Listbox):
+    """ A Tkinter listbox with drag'n'drop reordering of entries. """
+    def __init__(self, master, **kw):
+        kw['selectmode'] = tkinter.SINGLE
+        tkinter.Listbox.__init__(self, master, kw)
+        self.bind('<Button-1>', self.setCurrent)
+        self.bind('<B1-Motion>', self.shiftSelection)
+        self.curIndex = None
+
+    def setCurrent(self, event):
+        self.curIndex = self.nearest(event.y)
+
+    def shiftSelection(self, event):
+        i = self.nearest(event.y)
+        if i < self.curIndex:
+            x = self.get(i)
+            self.delete(i)
+            self.insert(i+1, x)
+            self.curIndex = i
+        elif i > self.curIndex:
+            x = self.get(i)
+            self.delete(i)
+            self.insert(i-1, x)
+            self.curIndex = i
+
 class Gui(customtkinter.CTk):
     WIDTH = 1000
     HEIGHT = 600
     NAME = "DTC TOOL"
-
-    message: str = "test error"
 
     # TODO obj_icon = ImageTk.PhotoImage()
     
@@ -23,6 +46,14 @@ class Gui(customtkinter.CTk):
         self.minsize(self.WIDTH, self.HEIGHT)
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        ### Variables 
+        
+        self.caucasus_parser = parsers.BF_CSV_Parser("data/Caucasus_80s_Objectives.csv")
+        self.selected_wp_name = tkinter.StringVar(value=["Kazbegi", "Beslan", "Java"])
+        self.objective_names = tkinter.StringVar(value=self.caucasus_parser.objective_names)
+
+        self.message = tkinter.StringVar()
 
         ### Panels creation
         
@@ -40,15 +71,33 @@ class Gui(customtkinter.CTk):
 
         ### DTC panel
 
-        self.dtc_panel.grid_rowconfigure(10, weight=0)
+        self.wp_panel.grid_rowconfigure(6, weight=1)
+
+        customtkinter.CTkLabel(self.dtc_panel, text="Aircraft").grid(row=0, column=0, sticky="sw", padx=(12, 12))
+        self.aircraft_select = customtkinter.CTkOptionMenu(self.dtc_panel, values=["M2000-C"])
+        self.aircraft_select.grid(row=1, column=0, padx=(12,12), pady=(0, 6))
+
+        customtkinter.CTkLabel(self.dtc_panel, text="Terrain").grid(row=2, column=0, sticky="sw", padx=(12, 12))
+        self.terrain_select = customtkinter.CTkOptionMenu(self.dtc_panel, values=["Caucasus"])
+        self.terrain_select.grid(row=3, column=0, padx=(12,12), pady=(0, 6))
+
+        customtkinter.CTkLabel(self.dtc_panel, text="Name").grid(row=4, column=0, sticky="sw", padx=(12, 12))
+        self.name_entry = customtkinter.CTkEntry(master=self.dtc_panel,
+                                            placeholder_text="Cartridge name...")
+        self.name_entry.grid(row=5, column=0, sticky="we", padx=(12, 12), pady=(0,6))
+
+        self.wp_listbox = DragDropListbox(self.dtc_panel, height=15, listvariable=self.selected_wp_name)
+        self.wp_listbox.grid(row=6, column=0, padx=(12, 12), pady=(0,6), sticky="nsew")
+
+
         self.export_button = customtkinter.CTkButton(self.dtc_panel, 
                                                 text="Export", 
-                                                command=lambda : self.export)
-        self.export_button.grid(column=0, row=10, sticky="s")
+                                                command=self.export)
+        self.export_button.grid(column=0, row=10, padx=12, pady = 12, sticky="s")
 
         ### Waypoint selection panel
 
-        self.wp_panel.grid_rowconfigure(10, weight=0)
+        self.wp_panel.grid_rowconfigure(1, weight=1)
 
         self.entry = customtkinter.CTkEntry(master=self.wp_panel,
                                             placeholder_text="waypoint name...")
@@ -61,20 +110,25 @@ class Gui(customtkinter.CTk):
                                                 command=self.search)
         self.search_button.grid(row=0, column=1, sticky="w", padx=(0, 12), pady=12)
 
+        self.objectives_listbox = tkinter.Listbox(self.wp_panel, height=30, 
+                                               listvariable=self.objective_names)
+        self.objectives_listbox.grid(row=1, column=0, columnspan=2, padx=(12,12), pady=(12,12), sticky="nsew")
+
+
         ### Map panel
         
         self.map_view()
         
         ### Error bar
         
-        self.error_bar = customtkinter.CTkLabel(self, text=self.message)
+        self.error_bar = customtkinter.CTkLabel(self, textvariable=self.message)
         self.error_bar.grid(column=0, row=1, columnspan=3, sticky="sw", padx=12) 
 
     def export(self):
-        self.error_bar.setvar("sdfasdf")
+        self.message.set("Exporting...")
 
     def search(self, event=None):
-        self.message = "Searching..."
+        self.message.set("Searching...")
 
     def map_view(self):
         self.map_widget = tkintermapview.TkinterMapView(self, corner_radius=0)
@@ -83,8 +137,7 @@ class Gui(customtkinter.CTk):
         self.map_widget.set_position(43, 42)
         self.map_widget.set_zoom(7)
         self.map_widget.set_tile_server("http://a.tile.stamen.com/toner/{z}/{x}/{y}.png")  # black and white
-        caucasus80 = parsers.BF_CSV_Parser("data/Caucasus_80s_Objectives.csv")
-        for obj in caucasus80.objective_list:
+        for obj in self.caucasus_parser.objective_list:
             self.map_widget.set_marker(obj.coords.deg_lat, obj.coords.deg_long, text=obj.name)
 
     def on_closing(self, event=0):
