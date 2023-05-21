@@ -3,6 +3,8 @@ import customtkinter
 import tkintermapview
 import parsers
 from PIL import ImageTk
+from os import listdir
+from os.path import isfile, join
 
 class DragDropListbox(tkinter.Listbox):
     """ A Tkinter listbox with drag'n'drop reordering of entries. """
@@ -34,6 +36,8 @@ class Gui(customtkinter.CTk):
     HEIGHT = 600
     NAME = "DTC TOOL"
 
+    THEATER_PATH = "data"
+
     # TODO obj_icon = ImageTk.PhotoImage()
     
     def __init__(self, *args, **kwargs) -> None:
@@ -49,9 +53,9 @@ class Gui(customtkinter.CTk):
 
         ### Variables 
         
-        self.caucasus_parser = parsers.BF_CSV_Parser("data/Caucasus_80s_Objectives.csv")
+        self.bf_parser = parsers.BF_CSV_Parser("data/Caucasus_80s_Objectives.csv")
         self.selected_wp_name = tkinter.StringVar(value=["Kazbegi", "Beslan", "Java"])
-        self.objective_names = tkinter.StringVar(value=self.caucasus_parser.objective_names)
+        self.objective_names = tkinter.StringVar(value=self.bf_parser.objective_names)
 
         self.message = tkinter.StringVar()
 
@@ -78,7 +82,7 @@ class Gui(customtkinter.CTk):
         self.aircraft_select.grid(row=1, column=0, padx=(12,12), pady=(0, 6))
 
         customtkinter.CTkLabel(self.dtc_panel, text="Terrain").grid(row=2, column=0, sticky="sw", padx=(12, 12))
-        self.terrain_select = customtkinter.CTkOptionMenu(self.dtc_panel, values=["Caucasus"])
+        self.terrain_select = customtkinter.CTkOptionMenu(self.dtc_panel, values=self.get_available_theaters(), command=self.on_theater_selected)
         self.terrain_select.grid(row=3, column=0, padx=(12,12), pady=(0, 6))
 
         customtkinter.CTkLabel(self.dtc_panel, text="Name").grid(row=4, column=0, sticky="sw", padx=(12, 12))
@@ -133,15 +137,34 @@ class Gui(customtkinter.CTk):
     def map_view(self):
         self.map_widget = tkintermapview.TkinterMapView(self, corner_radius=0)
         self.map_widget.grid(column=2, row=0, sticky="nswe")
-
-        self.map_widget.set_position(43, 42)
-        self.map_widget.set_zoom(7)
+        self.center_map()
         self.map_widget.set_tile_server("http://a.tile.stamen.com/toner/{z}/{x}/{y}.png")  # black and white
-        for obj in self.caucasus_parser.objective_list:
-            self.map_widget.set_marker(obj.coords.deg_lat, obj.coords.deg_long, text=obj.name)
+        self.draw_map()
 
+    def draw_map(self):
+        for obj in self.bf_parser.objective_list:
+            self.map_widget.set_marker(obj.coords.deg_lat, obj.coords.deg_long, text=obj.name)
     def on_closing(self, event=0):
         self.destroy()
 
     def start(self):
         self.mainloop()
+
+    def on_theater_selected(self, choice):
+        self.bf_parser = parsers.BF_CSV_Parser(join(self.THEATER_PATH, f"{choice}"))
+        self.map_widget.delete_all_marker()
+        self.draw_map()
+        self.center_map()
+
+    def get_available_theaters(self):
+        return [f for f in listdir(self.THEATER_PATH) if isfile(join(self.THEATER_PATH, f)) and f.endswith('.csv')]
+
+    def center_map(self):
+        ax = [f.coords.deg_long for f in self.bf_parser.objective_list]
+        ay = [f.coords.deg_lat for f in self.bf_parser.objective_list]
+
+        mx = sum(ax)/len(ax)
+        my = sum(ay)/len(ay)
+
+        self.map_widget.set_position(my, mx)
+        self.map_widget.set_zoom(7)
