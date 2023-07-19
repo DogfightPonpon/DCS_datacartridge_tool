@@ -138,12 +138,15 @@ class Gui(customtkinter.CTk):
         self.map_widget = tkintermapview.TkinterMapView(self, corner_radius=0)
         self.map_widget.grid(column=2, row=0, sticky="nswe")
         self.center_map()
-        self.map_widget.set_tile_server("http://a.tile.stamen.com/toner/{z}/{x}/{y}.png")  # black and white
+        self.map_widget.set_tile_server("http://a.tile.stamen.com/terrain-background/{z}/{x}/{y}.png")
         self.draw_map()
 
     def draw_map(self):
         for obj in self.bf_parser.objective_list:
-            self.map_widget.set_marker(obj.coords.deg_lat, obj.coords.deg_long, text=obj.name)
+            marker = self.map_widget.set_marker(obj.coords.deg_lat, obj.coords.deg_long,
+                                                text=obj.name, text_color="black",
+                                                icon=self.get_marker_icon(obj.obj_type))
+
     def on_closing(self, event=0):
         self.destroy()
 
@@ -168,3 +171,16 @@ class Gui(customtkinter.CTk):
 
         self.map_widget.set_position(my, mx)
         self.map_widget.set_zoom(7)
+
+    def get_marker_icon(self, obj_type):
+        if obj_type == "AIRBASE":
+            icon = "airport.png"
+        elif obj_type == "ROADBASE":
+            icon = "roadbase.png"
+        elif obj_type == "FARP":
+            icon = "helicopter.png"
+        elif obj_type == "SAMSITE":
+            icon = "sam.png"
+        else:
+            icon = "cross.png"
+        return tkinter.PhotoImage(file=(join("icons", icon)))
